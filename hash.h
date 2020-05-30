@@ -9,25 +9,6 @@
 #ifndef HASH_H
 #define HASH_H
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
-#include "hash.h"
-
-#define FIRST_LOWER_CHAR 'a'
-#define FIRST_UPPER_CHAR 'A'
-#define UPPER_CASE_START 26
-#define FIRST_NUMBER '0'
-#define NUMBERS_START 52
-#define BINARY_BASE 64
-#define FALSE 0
-#define TRUE 1
-#define DEFAULT_SIZE 5
-#define INCREASE_MEMORY_FACTOR 2
-#define REHASH_FACTOR 2
-
 // Implements a solution to Problem 1 (a), which reads in from stdin:
 //   N M
 //   str_1
