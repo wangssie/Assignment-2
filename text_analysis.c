@@ -7,6 +7,8 @@
  */
 
 #include "text_analysis.h"
+#define DEFAULT_EDGE_ARRAY_SIZE 2
+
 
 // Build a character level trie for a given set of words.
 //
@@ -21,6 +23,62 @@
 void problem_2_a() {
   // TODO: Implement Me!
 }
+
+// Compares two characters, c1 and c2 and returns:
+  // 0 if they are equal
+  // -1 if c1<c2
+  // 1 if c1>c2
+int compareChar(char c1, char c2) {
+  if (c1==c2) {
+    return 0;
+  }
+  else if ((int)c1<(int)c2 || c1 == '$') {
+    return -1;
+  }
+  return 1;
+}
+
+// Create an array of nodes that keeps track of its children
+node_t **createEdgeArray() {
+  node_t **edgeArray = (node_t**)malloc(sizeof(node_t*)*DEFAULT_EDGE_ARRAY_SIZE);
+  assert(edgeArray != NULL);
+  return edgeArray;
+}
+
+// Create a node:
+  // c <- character stored in node
+  // depth <- the level the node is on in the trie
+  // prevNode <- the parent of the node
+node_t *createNode(char c, int depth, node_t *prevNode) {
+  node_t **edgeArray = createEdgeArray();
+  node_t *node;
+  node->c = c;
+  node->freq = 1;
+  node->edgeArray = edgeArray;
+  node->prevNode = prevNode;
+  node->depth = depth;
+  return node;
+}
+
+// free the edge array of the node
+void freeEdgeArray(node_t *node) {
+  free(node->edgeArray);
+}
+
+void freeNode(node_t *node) {
+  int i;
+  for (i=0; i<node->edgeCount; i++) {
+    freeNode(*(node->edgeArray+i));
+  }
+  freeEdgeArray(node);
+  free(node);
+}
+
+void freeTrie(node_t *head) {
+  freeNode(head);
+}
+
+
 
 // Using the trie constructed in Part (a) this program should output all
 // prefixes of length K, in alphabetic order along with their frequencies

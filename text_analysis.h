@@ -8,6 +8,21 @@
 
 #ifndef TEXT_ANALYSIS_H
 #define TEXT_ANALYSIS_H
+#include <stdlib.h>
+#include <assert.h>
+
+typedef struct node node_t;
+
+typedef char data_t;
+
+struct node{
+  char c;
+  int freq;
+  node_t **edgeArray;
+  node_t *prevNode;
+  int edgeCount;
+  int depth;
+};
 
 // Build a character level trie for a given set of words.
 //
@@ -64,5 +79,17 @@ void problem_2_b();
 // If there are two strings with the same probability ties should be broken
 // alphabetically (with "a" coming before "aa").
 void problem_2_c();
+
+// Compares two characters, c1 and c2 and returns:
+  // 0 if they are equal
+  // -1 if c1<c2
+  // 1 if c1>c2
+int compareChar(char c1, char c2);
+
+node_t *createNode(char c, int depth, node_t *prevNode);
+
+node_t **createEdgeArray();
+
+void freeEdgeArray(node_t *node);
 
 #endif
