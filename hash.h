@@ -24,7 +24,9 @@
 #define BINARY_BASE 64
 #define FALSE 0
 #define TRUE 1
-
+#define DEFAULT_SIZE 5
+#define INCREASE_MEMORY_FACTOR 2
+#define REHASH_FACTOR 2
 
 // Implements a solution to Problem 1 (a), which reads in from stdin:
 //   N M
@@ -35,12 +37,6 @@
 // And outputs (to stdout) the hash values of the N strings 1 per line.
 void problem_1_a();
 
-// Maps each character to a number
-// lower case a-z: 0-25
-// upper case A-Z: 26-51
-// digits 0-9: 52-61
-int getDigit(char c);
-int getHash(char *string, int M);
 // Implements a solution to Problem 1 (b), which reads in from stdin:
 //   N M K
 //   str_1
@@ -64,11 +60,36 @@ int getHash(char *string, int M);
 //   (M-2): str_q
 //   (M-1):
 void problem_1_b();
-char** createHashtable(int M);
-void freeHashtable(char** hashtable, int length);
-void printHashtable(char** hashtable, int M);
+
+/* MY OWN FUNCTIONS */
+
+// Maps each character to a number
+// lower case a-z: 0-25
+// upper case A-Z: 26-51
+// digits 0-9: 52-61
+int getDigit(char c);
+
+// Gets the hash number for a string
+int getHash(char *string, int M);
+
+// Adds the string to the hashtable
+// Returns pointer of hashtable in case hashtable was rehashed (new pointer)
 char** hash(char* string, char **hashtable, int *M, int K);
+
+// Rehashes the hashtable to double the original size
 char** rehash(char** hashtable, int *M, int K);
+
+// Creates a size M array of character pointers AKA the hashtable array
+// initialises all the pointers to NULL
+char** createHashtable(int M);
+
+// Frees the hashtable and pointers inside the hashtable
+void freeHashtable(char** hashtable, int length);
+
+// Prints out the hashtable and the contents
+void printHashtable(char** hashtable, int M);
+
+// Scans the string from stdin and returns its pointer
 char *getWord(void);
 
 #endif

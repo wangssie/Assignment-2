@@ -21,6 +21,8 @@
 #define FALSE 0
 #define TRUE 1
 #define DEFAULT_SIZE 5
+#define INCREASE_MEMORY_FACTOR 2
+#define REHASH_FACTOR 2
 
 char** hash(char* string, char **hashtable, int *M, int K);
 
@@ -35,8 +37,7 @@ void problem_1_a() {
   int N, M, i;
   scanf("%d %d\n", &N, &M);
   for (i=0; i<N; i++) {
-    char *string;
-    scanf("%s", string);
+    char *string = getWord();
     printf("%d\n", getHash(string, M));
   }
 
@@ -105,22 +106,25 @@ int getHash(char *string, int M) {
 void problem_1_b() {
   int N, M, K, i;
   scanf("%d %d %d\n", &N, &M, &K);
+  // create hashtable
   char **hashtable = createHashtable(M);
   char *string;
+  // read in the N strings
   for (i=0; i<N; i++) {
     string = getWord();
-    printf("word we are hashing: %s\n", string);
+    // add string to hashtable
     hashtable = hash(string, hashtable, &M, K);
   }
-  printf("to be printed, hashtable pointer: %p\n", hashtable);
+  // print the hashtable
   printHashtable(hashtable, M);
-  free(hashtable);
+  // free all pointers (hashtable + strings)
+  freeHashtable(hashtable, M);
 }
 
-// adds the string to the hashtable
+// Adds the string to the hashtable
+// Returns pointer of hashtable in case hashtable was rehashed (new pointer)
 char** hash(char* string, char **hashtable, int *M, int K) {
   int originalHash = getHash(string, *M);
-  printf("%s original hash number: %d\n\n", string, originalHash);
   int hashNumber = originalHash;
   int repeat = FALSE;
   // looking for an empty hash bucket and
@@ -140,7 +144,6 @@ char** hash(char* string, char **hashtable, int *M, int K) {
   }
   // could not find a hash bucket
   hashtable = rehash(hashtable, M, K);
-  printf("hashtable post rehashing pointer: %p\n", hashtable);
   // hash the string again into new hashtable
   hash(string, hashtable, M, K);
   return hashtable;
@@ -148,26 +151,25 @@ char** hash(char* string, char **hashtable, int *M, int K) {
 
 // Rehashes the hashtable to double the original size
 char** rehash(char** hashtable, int *M, int K) {
-  // double hashtable size
-  *M = (*M)*2;
+  // increase hashtable size by rehash factor (double)
+  *M = (*M)*REHASH_FACTOR;
   // create a new array of double size
   char** newHashtable = createHashtable(*M);
   assert(newHashtable!=NULL);
   // go through old hashtable and hash everything into new hashtable
   int i;
-  for (i=0;i<(*M)/2; i++) {
+  for (i=0;i<(*M)/REHASH_FACTOR; i++) {
     if (*(hashtable+i)!=NULL) {
       hash(*(hashtable+i), newHashtable, M, K);
     }
   }
-  printf("new hashtable pointer: %p\n", newHashtable);
   // free old hashtable
   free(hashtable);
   // return new hashtable
   return newHashtable;
 }
 
-// creates a size M array of character pointers AKA the hashtable array
+// Creates a size M array of character pointers AKA the hashtable array
 // initialises all the pointers to NULL
 char** createHashtable(int M) {
   char **hashtable = (char**)malloc(M*sizeof(char*));
@@ -180,42 +182,54 @@ char** createHashtable(int M) {
   return hashtable;
 }
 
-// frees the hashtable and pointers inside the hashtable
+// Frees the hashtable and pointers inside the hashtable
 void freeHashtable(char** hashtable, int length) {
   int i;
+  // free all the strings in the hashtable
   for (i=0; i<length; i++) {
     if (*(hashtable+i) != NULL) {
     free(*(hashtable+i));
     }
   }
+  // free the hashtable itself
   free(hashtable);
 }
 
-// print out the hashtable and the contents
+// Prints out the hashtable and the contents
 void printHashtable(char** hashtable, int M) {
   int i;
   for (i=0; i<M; i++) {
     printf("%d: ", i);
     // if hash bucket is not empty
     if (*(hashtable+i)!= NULL) {
+      // print out string in that bucket
       printf("%s", *(hashtable+i));
     }
     printf("\n");
   }
 }
 
+// Scans the string from stdin and returns its pointer
 char *getWord(void) {
   int size = DEFAULT_SIZE;
   int len = 0;
-  char *string = (char*)malloc(sizeof(char)*size);
+  char *string;
+  string = (char*)malloc(sizeof(char)*size);
+  assert(string!=NULL);
   int c;
+
+  // while the next character is not a newline character
   while ((c=getchar())!=EOF && c!='\n') {
     *(string+len) = c;
     len ++;
+    // assign larger memory to pointer if array has reached full capacity
     if (len == size) {
-      string = realloc(string, sizeof(char)*(size+16));
+      // double the memory size
+      size*=INCREASE_MEMORY_FACTOR;
+      string = realloc(string, sizeof(char)*(size));
     }
   }
+  // insert null character at end of string
   *(string+len) = '\0';
   return string;
 }
