@@ -20,6 +20,7 @@
 #define BINARY_BASE 64
 #define FALSE 0
 #define TRUE 1
+#define DEFAULT_SIZE 5
 
 void hash(char* string, char **hashtable, int *M, int K);
 
@@ -103,11 +104,11 @@ int getHash(char *string, int M) {
 //   (M-1):
 void problem_1_b() {
   int N, M, K, i;
-  scanf("%d %d %d", &N, &M, &K);
+  scanf("%d %d %d\n", &N, &M, &K);
   char **hashtable = createHashtable(M);
+  char *string;
   for (i=0; i<N; i++) {
-    char *string;
-    scanf("%s", string);
+    string = getWord();
     hash(string, hashtable, &M, K);
   }
   printHashtable(hashtable, M);
@@ -158,27 +159,20 @@ void hash(char* string, char **hashtable, int *M, int K) {
   int repeat = FALSE;
   // looking for an empty hash bucket and
   // has not reached original bucket twice
-  printf("word im dealing with: %s\n", string);
-  printf("original hash number: %d\n", hashNumber);
   while (!(hashNumber==originalHash && repeat)) {
     // hash bucket not empty
     if (*(hashtable+hashNumber)==NULL) {
       // add to bucket and exit the function
-      printf("hash @ %d succeeded\n", hashNumber);
       *(hashtable+hashNumber) = string;
       return;
     }
     // otherwise increment +k buckets
     else {
-
-      printf("hash number %d failed. try @ ", hashNumber);
       hashNumber = (hashNumber+K)%(*M);
-      printf("%d\n", hashNumber);
       repeat = TRUE;
     }
   }
   // could not find a hash bucket
-  printf("Finding empty bucket unsuccessful. Rehash entire hashtable\n");
   hashtable = rehash(hashtable, M, K);
   // hash the string again into new hashtable
   hash(string, hashtable, M, K);
@@ -203,4 +197,20 @@ char** rehash(char** hashtable, int *M, int K) {
   free(hashtable);
   // return new hashtable
   return newHashtable;
+}
+
+char *getWord(void) {
+  int size = DEFAULT_SIZE;
+  int len = 0;
+  char *string = (char*)malloc(sizeof(char)*size);
+  int c;
+  while ((c=getchar())!=EOF && c!='\n') {
+    *(string+len) = c;
+    len ++;
+    if (len == size) {
+      string = realloc(string, sizeof(char)*(size+16));
+    }
+  }
+  *(string+len) = '\0';
+  return string;
 }
