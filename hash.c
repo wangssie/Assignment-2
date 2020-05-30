@@ -22,7 +22,7 @@
 #define TRUE 1
 #define DEFAULT_SIZE 5
 
-void hash(char* string, char **hashtable, int *M, int K);
+char** hash(char* string, char **hashtable, int *M, int K);
 
 // Implements a solution to Problem 1 (a), which reads in from stdin:
 //   N M
@@ -109,10 +109,62 @@ void problem_1_b() {
   char *string;
   for (i=0; i<N; i++) {
     string = getWord();
-    hash(string, hashtable, &M, K);
+    printf("word we are hashing: %s\n", string);
+    hashtable = hash(string, hashtable, &M, K);
   }
+  printf("to be printed, hashtable pointer: %p\n", hashtable);
   printHashtable(hashtable, M);
   free(hashtable);
+}
+
+// adds the string to the hashtable
+char** hash(char* string, char **hashtable, int *M, int K) {
+  int originalHash = getHash(string, *M);
+  printf("%s original hash number: %d\n\n", string, originalHash);
+  int hashNumber = originalHash;
+  int repeat = FALSE;
+  // looking for an empty hash bucket and
+  // has not reached original bucket twice
+  while (!(hashNumber==originalHash && repeat)) {
+    // hash bucket not empty
+    if (*(hashtable+hashNumber)==NULL) {
+      // add to bucket and exit the function
+      *(hashtable+hashNumber) = string;
+      return hashtable;
+    }
+    // otherwise increment +k buckets
+    else {
+      hashNumber = (hashNumber+K)%(*M);
+      repeat = TRUE;
+    }
+  }
+  // could not find a hash bucket
+  hashtable = rehash(hashtable, M, K);
+  printf("hashtable post rehashing pointer: %p\n", hashtable);
+  // hash the string again into new hashtable
+  hash(string, hashtable, M, K);
+  return hashtable;
+}
+
+// Rehashes the hashtable to double the original size
+char** rehash(char** hashtable, int *M, int K) {
+  // double hashtable size
+  *M = (*M)*2;
+  // create a new array of double size
+  char** newHashtable = createHashtable(*M);
+  assert(newHashtable!=NULL);
+  // go through old hashtable and hash everything into new hashtable
+  int i;
+  for (i=0;i<(*M)/2; i++) {
+    if (*(hashtable+i)!=NULL) {
+      hash(*(hashtable+i), newHashtable, M, K);
+    }
+  }
+  printf("new hashtable pointer: %p\n", newHashtable);
+  // free old hashtable
+  free(hashtable);
+  // return new hashtable
+  return newHashtable;
 }
 
 // creates a size M array of character pointers AKA the hashtable array
@@ -150,53 +202,6 @@ void printHashtable(char** hashtable, int M) {
     }
     printf("\n");
   }
-}
-
-// adds the string to the hashtable
-void hash(char* string, char **hashtable, int *M, int K) {
-  int originalHash = getHash(string, *M);
-  int hashNumber = originalHash;
-  int repeat = FALSE;
-  // looking for an empty hash bucket and
-  // has not reached original bucket twice
-  while (!(hashNumber==originalHash && repeat)) {
-    // hash bucket not empty
-    if (*(hashtable+hashNumber)==NULL) {
-      // add to bucket and exit the function
-      *(hashtable+hashNumber) = string;
-      return;
-    }
-    // otherwise increment +k buckets
-    else {
-      hashNumber = (hashNumber+K)%(*M);
-      repeat = TRUE;
-    }
-  }
-  // could not find a hash bucket
-  hashtable = rehash(hashtable, M, K);
-  // hash the string again into new hashtable
-  hash(string, hashtable, M, K);
-}
-
-
-// Rehashes the hashtable to double the original size
-char** rehash(char** hashtable, int *M, int K) {
-  // double hashtable size
-  *M = (*M)*2;
-  // create a new array of double size
-  char** newHashtable = (char**)malloc((*M)*sizeof(char*));
-  assert(newHashtable!=NULL);
-  // go through old hashtable and hash everything into new hashtable
-  int i;
-  for (i=0;i<(*M)/2; i++) {
-    if (*(hashtable+i)!=NULL) {
-      hash(*(hashtable+i), newHashtable, M, K);
-    }
-  }
-  // free old hashtable
-  free(hashtable);
-  // return new hashtable
-  return newHashtable;
 }
 
 char *getWord(void) {

@@ -67,7 +67,7 @@ void problem_1_b();
 char** createHashtable(int M);
 void freeHashtable(char** hashtable, int length);
 void printHashtable(char** hashtable, int M);
-void hash(char* string, char **hashtable, int *M, int K);
+char** hash(char* string, char **hashtable, int *M, int K);
 char** rehash(char** hashtable, int *M, int K);
 char *getWord(void);
 
