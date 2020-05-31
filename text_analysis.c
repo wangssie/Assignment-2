@@ -11,10 +11,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include <math.h>
 #define RESIZE_FACTOR 2
 #define DEFAULT_EDGE_ARRAY_SIZE 2 // must always be less than resize factor
 #define MAX_EDGES 27
+#define END_SYMBOL '$'
+#define START_SYMBOL '^'
+#define NULL_CHAR '\0'
 
 
 // Compares two characters, c1 and c2 and returns:
@@ -44,11 +48,14 @@ node_t **createEdgeArray() {
   // prevNode <- the parent of the node
 node_t *createNode(char c, node_t *prevNode) {
   node_t **edgeArray = createEdgeArray();
-  node_t *node;
+  node_t *node = (node_t*)malloc(sizeof(node_t));
+  assert(node!=NULL);
+
   node->c = c;
   node->freq = 1;
   node->edgeArray = edgeArray;
   node->prevNode = prevNode;
+  node->edgeCount = 0;
   node->depth = prevNode->depth+1;
   return node;
 }
@@ -56,11 +63,14 @@ node_t *createNode(char c, node_t *prevNode) {
 // Create the head node of the trie, character ^
 node_t *createHeadNode() {
   node_t **edgeArray = createEdgeArray();
-  node_t *node;
-  node->c = '^';
+  node_t *node = (node_t*)malloc(sizeof(node_t));
+  assert(node!=NULL);
+
+  node->c = START_SYMBOL;
   node->freq = 0;
   node->edgeArray = edgeArray;
   node->prevNode = NULL;
+  node->edgeCount = 0;
   node->depth = 0;
   return node;
 }
@@ -91,7 +101,6 @@ int binarySearch(char c, node_t **edgeArray, int L, int R) {
   if (L>R) {
     return -1;
   }
-
   // middle index
   int i = (R+L)/2;
   int compare = compareChar(c, (*(edgeArray+i))->c);
@@ -113,46 +122,64 @@ int binarySearch(char c, node_t **edgeArray, int L, int R) {
 // if found -> returns index of node in egde array
 // if not found -> returns -1
 int searchEdgeArray(node_t *node, char c) {
+  if (node->edgeCount == 0) {
+    return -1;
+  }
   return binarySearch(c, node->edgeArray, 0, node->edgeCount -1);
 }
 
 // Find which index the node with character c should be put in this edge array
 // in order to maintain ordered nature
 // AKA Find the smallest node that is greater than c
-int searchIndexPosition(char c, node_t **edgeArray, int L, int R) {
+int binarySearchPosition(char c, node_t **edgeArray, int L, int R) {
+  // L surpassed R, therfore all elements are less than c
+  if (L>R) {
+    return L;
+  }
+  int i = (L+R)/2;
+  int compare = compareChar(c, (*(edgeArray+i))->c);
   // smallest node greater than c is found, return index
-  if (L==R) {
+  if (L==R && compare<0) {
     return L;
   }
   // choose middle index in array
-  int i = (L+R)/2;
-  int compare = compareChar(c, (*(edgeArray+i))->c);
   // if character is less that node at index i
   if (compare<0) {
     // continue search below i, including i
-    return searchIndexPosition(c, edgeArray, L, i);
+    return binarySearchPosition(c, edgeArray, L, i);
   }
   // if character is greater than node at index i
   else {
     // continue search beyond node at index i
-    return searchIndexPosition(c, edgeArray, i+1, R);
+    return binarySearchPosition(c, edgeArray, i+1, R);
+  }
+}
+
+int findEdgeArrayPosition(node_t *addedNode, node_t *prevNode) {
+  // if edge array is empty
+  if (prevNode->edgeCount ==0) {
+    return 0;
+  }
+  else {
+    return binarySearchPosition(addedNode->c, prevNode->edgeArray, 0, prevNode->edgeCount-1);
   }
 }
 
 // Resize the edge array if it has reached full capacity
 // Increase the size by factor until it will exceed max number of edges
-void resizeEdgeArray(node_t *node, int factor) {
-  int i;
-  for (i=1; pow(factor,i)<=MAX_EDGES; i++) {
-    int bound = pow(factor, i);
+void resizeEdgeArray(node_t *node) {
+  int i, bound, possibleBound;
+  for (i=1; pow(RESIZE_FACTOR,i)<=MAX_EDGES; i++) {
+    bound = pow(RESIZE_FACTOR, i);
     // has yet to reach edgeArray full capacity
     if (node->edgeCount < bound) {
       return;
     }
     // if full capacity reached
     if (node->edgeCount == bound) {
+      // DEBUG printf("array of node %p is resized\n", node);
       // if multiplying by factor+1 will exceed max number of edges
-      int possibleBound = pow(factor, i+1);
+      possibleBound = pow(RESIZE_FACTOR, i+1);
       if (possibleBound>MAX_EDGES) {
         // realloc with max number of edges possible
         node->edgeArray = (node_t**)realloc(node->edgeArray, sizeof(node_t*)*MAX_EDGES);
@@ -167,33 +194,101 @@ void resizeEdgeArray(node_t *node, int factor) {
 
 // Add a character into the current node's array of child nodes
 // Ensure that sorted nature of array is maintained
-void addEdge(char c, node_t *prevNode) {
-  // Create a new node for the character c
-  node_t *addedNode = createNode(c, prevNode);
-
+void addEdge(node_t *addedNode, node_t *prevNode) {
+  // DEBUG printf("adding %c (%p) to %c's (%p) edgeArray\n", addedNode->c, addedNode, prevNode->c, prevNode);
   // search position
-  int index = searchIndexPosition(c, prevNode->edgeArray, 0, prevNode->edgeCount-1);
+  int index = findEdgeArrayPosition(addedNode, prevNode);
+  // DEBUG printf("position in edge array: %d\n", index);
   // resize array
-  resizeEdgeArray(prevNode, RESIZE_FACTOR);
+  resizeEdgeArray(prevNode);
   // shift array one position down
   int i;
-  for (i=prevNode->edgeCount-1; i>=index; i--) {
+  for (i=(prevNode->edgeCount)-1; i>=index; i--) {
     *((prevNode->edgeArray)+i+1)=*((prevNode->edgeArray)+i);
+    // DEBUG printf("moving node %c (%p) one position up\n",(*((prevNode->edgeArray)+i))->c,*((prevNode->edgeArray)+i));
   }
   // place node in position
   *((prevNode->edgeArray)+index) = addedNode;
+  prevNode -> edgeCount ++;
+  // DEBUG
+  /* printf("edge array of %c (%p):[", prevNode->c, prevNode);
+  for (i=0; i<prevNode->edgeCount; i++) {
+    printf("%c ", (*((prevNode->edgeArray)+i)) -> c);
+  }
+  printf("]\n");*/
+
 }
 
 // Preorder traversal through trie and printing each traverse node's character
 void traversePrint(node_t *node) {
-  printf("%c\n", node->c);
+  printf("%c\n", node->c, node->depth, node->freq);
   int i;
   for (i=0; i<node->edgeCount; i++) {
     traversePrint(*((node->edgeArray)+i));
   }
 }
 
+// Add end node to the end of the word pathway in trie
+void addEndNode(node_t *lastNode) {
+  // create the end node
+  node_t *endNode = createNode(END_SYMBOL, lastNode);
+  addEdge(endNode, lastNode); // could implement better function where it doesn't binary search but always adds it to the start of the array
+}
 
+char *appendEndSymbol(char *word) {
+  int len = strlen(word);
+  word = (char*)realloc(word, (len+2)*sizeof(char));
+  *(word+len+1) = NULL_CHAR;
+  *(word+len) = END_SYMBOL;
+  return word;
+}
+
+// Create a trie and return it's head node
+node_t *createTrie(int N) {
+  // create head node
+  node_t *head = createHeadNode(), *currNode, *nextNode;
+  int i, j, x, charIndex;
+  char* word;
+  for (i=0; i<N; i++) {
+    // Get the next word to add to trie
+    word = getWord();
+    word = appendEndSymbol(word);
+    // DEBUG printf("\n\nword: %s\n", word);
+    currNode = head;
+    // update frequency of total number words
+    head->freq++;
+    // iterate through each character in word
+    for (j=0; j<strlen(word); j++) {
+      // DEBUG printf("char: %c ", *(word+j));
+      charIndex = searchEdgeArray(currNode, *(word+j));
+      // if character node already exists in current node's edges
+      if (charIndex != -1) {
+        // DEBUG printf("FOUND\n");
+        nextNode = *((currNode->edgeArray)+charIndex);
+        nextNode->freq++;
+        // DEBUG printf("freq of node %c (%p) at depth %d: %d\n",nextNode->c, nextNode, nextNode->depth,nextNode->freq);
+        // traverse to the character node
+        currNode = nextNode;
+        // look for next character in word
+        continue;
+      }
+      // if character is not found
+      else {
+        // DEBUG printf("NOT FOUND\n");
+        // for remaining letters
+        for (x=j; x<strlen(word); x++) {
+          nextNode = createNode(*(word+x), currNode);
+          // DEBUG printf("created new node: %c (%p), depth: %d\n", nextNode->c, nextNode, nextNode->depth );
+          addEdge(nextNode, currNode);
+          currNode = nextNode;
+        }
+        // add end symbol node to end of word in trie
+        break;
+      }
+    }
+  }
+  return head;
+}
 
 // Build a character level trie for a given set of words.
 //
@@ -206,7 +301,11 @@ void traversePrint(node_t *node) {
 // Your program must output the pre-order traversal of the characters in
 // the trie, on a single line.
 void problem_2_a() {
-  // TODO: Implement Me!
+  int N;
+  scanf("%d\n", &N);
+  node_t *trieHead = createTrie(N);
+  traversePrint(trieHead);
+  freeTrie(trieHead);
 }
 
 // Using the trie constructed in Part (a) this program should output all

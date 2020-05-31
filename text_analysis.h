@@ -100,12 +100,18 @@ int binarySearch(char c, node_t **edgeArray, int L, int R);
 
 int searchEdgeArray(node_t *node, char c);
 
-int searchIndexPosition(char c, node_t **edgeArray, int L, int R);
+int binarySearchPosition(char c, node_t **edgeArray, int L, int R);
 
-void resizeEdgeArray(node_t *node, int factor);
+int findEdgeArrayPosition(node_t *addedNode, node_t *prevNode);
 
-void addEdge(char c, node_t *prevNode);
+void resizeEdgeArray(node_t *node);
+
+void addEdge(node_t *addedNode, node_t *prevNode);
 
 void traversePrint(node_t *node);
+
+void addEndNode(node_t *lastNode);
+
+node_t *createTrie(int N);
 
 #endif
