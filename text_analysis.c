@@ -60,11 +60,12 @@ node_t *createNode(char c, int depth, node_t *prevNode) {
   return node;
 }
 
-// free the edge array of the node
+// Free the edge array of the node
 void freeEdgeArray(node_t *node) {
   free(node->edgeArray);
 }
 
+// Free the node and its children
 void freeNode(node_t *node) {
   int i;
   for (i=0; i<node->edgeCount; i++) {
@@ -74,11 +75,41 @@ void freeNode(node_t *node) {
   free(node);
 }
 
+// Free the trie
 void freeTrie(node_t *head) {
   freeNode(head);
 }
 
+// Perform binary search of character c in edge Array
+int binarySearch(char c, node_t **edgeArray, int L, int R) {
+  // character not found in array
+  if (L>R) {
+    return -1;
+  }
 
+  // middle index
+  int i = (R+L)/2;
+  int compare = compareChar(c, (*(edgeArray+i))->c);
+  // found the character
+  if (compare==0) {
+    return i;
+  }
+  // character is less than node at index i
+  else if (compare <0) {
+    return binarySearch(c, edgeArray, L, i-1);
+  }
+  // character is greater than node at index i
+  else {
+    return i+1+binarySearch(c, edgeArray, i+1, R);
+  }
+}
+
+// Search is character c exists as a child node for the node
+// if found -> returns index of node in egde array
+// if not found -> returns -1
+int searchEdgeArray(node_t *node, char c) {
+  return binarySearch(c, node->edgeArray, 0, node->edgeCount -1);
+}
 
 // Using the trie constructed in Part (a) this program should output all
 // prefixes of length K, in alphabetic order along with their frequencies

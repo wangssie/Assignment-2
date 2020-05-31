@@ -86,10 +86,18 @@ void problem_2_c();
   // 1 if c1>c2
 int compareChar(char c1, char c2);
 
-node_t *createNode(char c, int depth, node_t *prevNode);
-
 node_t **createEdgeArray();
 
+node_t *createNode(char c, int depth, node_t *prevNode);
+
 void freeEdgeArray(node_t *node);
+
+void freeNode(node_t *node);
+
+void freeTrie(node_t *head);
+
+int binarySearch(char c, node_t **edgeArray, int L, int R);
+
+int searchEdgeArray(node_t *node, char c);
 
 #endif
