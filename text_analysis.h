@@ -114,4 +114,8 @@ void addEndNode(node_t *lastNode);
 
 node_t *createTrie(int N);
 
+char *getFullString(node_t *node);
+
+void traverseK(node_t *node, int K);
+
 #endif

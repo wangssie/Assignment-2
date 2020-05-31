@@ -303,9 +303,46 @@ node_t *createTrie(int N) {
 void problem_2_a() {
   int N;
   scanf("%d\n", &N);
+
   node_t *trieHead = createTrie(N);
+
   traversePrint(trieHead);
   freeTrie(trieHead);
+}
+
+// Get the full string from the head trie to a specified node
+char *getFullString(node_t *node) {
+  node_t *currNode = node;
+  int stringLength = node->depth, i;
+  char* string = malloc((stringLength+1)*sizeof(char));
+
+  // copy path of node's characters to string
+  for (i=stringLength-1; i>=0; i--) {
+    *(string+i) = currNode->c;
+    currNode = currNode->prevNode;
+  }
+  // add null character at the end
+  *(string+stringLength) = '\0';
+
+  return string;
+}
+
+// Traverse preorderly through trie and print prefixes (and their frequencies) with length K
+void traverseK(node_t *node, int K) {
+  char *string;
+  int i;
+  // if length of path is equal to K and node is not an end symbol
+  if (K==node->depth && node->c != END_SYMBOL) {
+    string = getFullString(node);
+    printf("%s %d\n", string, node->freq);
+    free(string);
+  }
+  else if (node->edgeCount != 0) {
+    for (i=0; i<node->edgeCount; i++) {
+      traverseK(*((node->edgeArray)+i), K);
+    }
+  }
+  return;
 }
 
 // Using the trie constructed in Part (a) this program should output all
@@ -322,7 +359,13 @@ void problem_2_a() {
 //   ...
 //   ye 1
 void problem_2_b() {
-  // TODO: Implement Me!
+  int N, K;
+  scanf("%d %d\n", &N, &K);
+
+  node_t *trieHead = createTrie(N);
+
+  traverseK(trieHead, K);
+
 }
 
 // Again using the trie data structure you implemented for Part (a) you will
