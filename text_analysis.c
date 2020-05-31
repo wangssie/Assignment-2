@@ -7,22 +7,15 @@
  */
 
 #include "text_analysis.h"
-#define DEFAULT_EDGE_ARRAY_SIZE 2
+#include "hash.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
+#define RESIZE_FACTOR 2
+#define DEFAULT_EDGE_ARRAY_SIZE 2 // must always be less than resize factor
+#define MAX_EDGES 27
 
-
-// Build a character level trie for a given set of words.
-//
-// The input to your program is an integer N followed by N lines containing
-// words of length < 100 characters, containing only lowercase letters.
-//
-// Your program should built a character level trie where each node indicates
-// a single character. Branches should be ordered in alphabetic order.
-//
-// Your program must output the pre-order traversal of the characters in
-// the trie, on a single line.
-void problem_2_a() {
-  // TODO: Implement Me!
-}
 
 // Compares two characters, c1 and c2 and returns:
   // 0 if they are equal
@@ -49,14 +42,26 @@ node_t **createEdgeArray() {
   // c <- character stored in node
   // depth <- the level the node is on in the trie
   // prevNode <- the parent of the node
-node_t *createNode(char c, int depth, node_t *prevNode) {
+node_t *createNode(char c, node_t *prevNode) {
   node_t **edgeArray = createEdgeArray();
   node_t *node;
   node->c = c;
   node->freq = 1;
   node->edgeArray = edgeArray;
   node->prevNode = prevNode;
-  node->depth = depth;
+  node->depth = prevNode->depth+1;
+  return node;
+}
+
+// Create the head node of the trie, character ^
+node_t *createHeadNode() {
+  node_t **edgeArray = createEdgeArray();
+  node_t *node;
+  node->c = '^';
+  node->freq = 0;
+  node->edgeArray = edgeArray;
+  node->prevNode = NULL;
+  node->depth = 0;
   return node;
 }
 
@@ -100,7 +105,7 @@ int binarySearch(char c, node_t **edgeArray, int L, int R) {
   }
   // character is greater than node at index i
   else {
-    return i+1+binarySearch(c, edgeArray, i+1, R);
+    return binarySearch(c, edgeArray, i+1, R);
   }
 }
 
@@ -109,6 +114,99 @@ int binarySearch(char c, node_t **edgeArray, int L, int R) {
 // if not found -> returns -1
 int searchEdgeArray(node_t *node, char c) {
   return binarySearch(c, node->edgeArray, 0, node->edgeCount -1);
+}
+
+// Find which index the node with character c should be put in this edge array
+// in order to maintain ordered nature
+// AKA Find the smallest node that is greater than c
+int searchIndexPosition(char c, node_t **edgeArray, int L, int R) {
+  // smallest node greater than c is found, return index
+  if (L==R) {
+    return L;
+  }
+  // choose middle index in array
+  int i = (L+R)/2;
+  int compare = compareChar(c, (*(edgeArray+i))->c);
+  // if character is less that node at index i
+  if (compare<0) {
+    // continue search below i, including i
+    return searchIndexPosition(c, edgeArray, L, i);
+  }
+  // if character is greater than node at index i
+  else {
+    // continue search beyond node at index i
+    return searchIndexPosition(c, edgeArray, i+1, R);
+  }
+}
+
+// Resize the edge array if it has reached full capacity
+// Increase the size by factor until it will exceed max number of edges
+void resizeEdgeArray(node_t *node, int factor) {
+  int i;
+  for (i=1; pow(factor,i)<=MAX_EDGES; i++) {
+    int bound = pow(factor, i);
+    // has yet to reach edgeArray full capacity
+    if (node->edgeCount < bound) {
+      return;
+    }
+    // if full capacity reached
+    if (node->edgeCount == bound) {
+      // if multiplying by factor+1 will exceed max number of edges
+      int possibleBound = pow(factor, i+1);
+      if (possibleBound>MAX_EDGES) {
+        // realloc with max number of edges possible
+        node->edgeArray = (node_t**)realloc(node->edgeArray, sizeof(node_t*)*MAX_EDGES);
+      }
+      else {
+        // increase array size by factor
+        node->edgeArray = (node_t**)realloc(node->edgeArray, sizeof(node_t*)*possibleBound);
+      }
+    }
+  }
+}
+
+// Add a character into the current node's array of child nodes
+// Ensure that sorted nature of array is maintained
+void addEdge(char c, node_t *prevNode) {
+  // Create a new node for the character c
+  node_t *addedNode = createNode(c, prevNode);
+
+  // search position
+  int index = searchIndexPosition(c, prevNode->edgeArray, 0, prevNode->edgeCount-1);
+  // resize array
+  resizeEdgeArray(prevNode, RESIZE_FACTOR);
+  // shift array one position down
+  int i;
+  for (i=prevNode->edgeCount-1; i>=index; i--) {
+    *((prevNode->edgeArray)+i+1)=*((prevNode->edgeArray)+i);
+  }
+  // place node in position
+  *((prevNode->edgeArray)+index) = addedNode;
+}
+
+// Preorder traversal through trie and printing each traverse node's character
+void traversePrint(node_t *node) {
+  printf("%c\n", node->c);
+  int i;
+  for (i=0; i<node->edgeCount; i++) {
+    traversePrint(*((node->edgeArray)+i));
+  }
+}
+
+
+
+// Build a character level trie for a given set of words.
+//
+// The input to your program is an integer N followed by N lines containing
+// words of length < 100 characters, containing only lowercase letters.
+//
+// Your program should built a character level trie where each node indicates
+// a single character. Branches should be ordered in alphabetic order.
+//
+// Your program must output the pre-order traversal of the characters in
+// the trie, on a single line.
+void problem_2_a() {
+  // TODO: Implement Me!
 }
 
 // Using the trie constructed in Part (a) this program should output all

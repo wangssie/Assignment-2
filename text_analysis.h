@@ -8,8 +8,6 @@
 
 #ifndef TEXT_ANALYSIS_H
 #define TEXT_ANALYSIS_H
-#include <stdlib.h>
-#include <assert.h>
 
 typedef struct node node_t;
 
@@ -88,7 +86,9 @@ int compareChar(char c1, char c2);
 
 node_t **createEdgeArray();
 
-node_t *createNode(char c, int depth, node_t *prevNode);
+node_t *createNode(char c, node_t *prevNode);
+
+node_t *createHeadNode();
 
 void freeEdgeArray(node_t *node);
 
@@ -99,5 +99,13 @@ void freeTrie(node_t *head);
 int binarySearch(char c, node_t **edgeArray, int L, int R);
 
 int searchEdgeArray(node_t *node, char c);
+
+int searchIndexPosition(char c, node_t **edgeArray, int L, int R);
+
+void resizeEdgeArray(node_t *node, int factor);
+
+void addEdge(char c, node_t *prevNode);
+
+void traversePrint(node_t *node);
 
 #endif
