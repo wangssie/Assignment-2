@@ -19,6 +19,7 @@
 #define END_SYMBOL '$'
 #define START_SYMBOL '^'
 #define NULL_CHAR '\0'
+#define P2C_COMPLETIONS 5
 
 
 // Compares two characters, c1 and c2 and returns:
@@ -287,6 +288,7 @@ node_t *createTrie(int N) {
       }
     }
   }
+  free(word);
   return head;
 }
 
@@ -359,12 +361,81 @@ void traverseK(node_t *node, int K) {
 //   ...
 //   ye 1
 void problem_2_b() {
+  // scan in parameters
   int N, K;
   scanf("%d %d\n", &N, &K);
-
+  // create a trie
   node_t *trieHead = createTrie(N);
-
+  // traverse the trie and print out the strings that only have length K
   traverseK(trieHead, K);
+  // free trie
+  freeTrie(trieHead);
+
+}
+
+// Find the node that ends the stub prefix
+node_t *findStubNode(node_t *node, char *stub) {
+  node_t *currNode = node;
+  int i, index;
+  char c;
+  for (i=0; i<strlen(stub); i++) {
+    c = *(stub+i);
+    if ((index=searchEdgeArray(currNode, c))!=-1) {
+      currNode = *((currNode->edgeArray)+index);
+    }
+    else {
+      return NULL;
+    }
+  }
+  return currNode;
+}
+
+// Add the node of the end of the string to array
+void traverseStub(node_t *node, node_t **array, int *track) {
+  if (node-> c == END_SYMBOL) {
+    *(array+*track) = node;
+    *track = *track + 1;
+    return;
+  }
+  else {
+    int i;
+    for (i=0; i<node->edgeCount; i++) {
+      traverseStub(*((node->edgeArray)+i), array, track);
+    }
+  }
+}
+
+// Print the top few probable words that contain the stub
+void printProbableWords(node_t** containStubArray, int track, int denom) {
+  int i, j, maxIndex;
+  float probability;
+  node_t *maxNode, *currNode;
+  char *string;
+  // find the top number of strings to show
+  for (i=0; i<P2C_COMPLETIONS && i<=track; i++) {
+    // maximum node for the upcoming iteration
+    maxNode = NULL;
+    maxIndex = -1;
+    for (j=0; j<track; j++) {
+      currNode = *(containStubArray+j);
+      // skip if element has already been selected
+      if (currNode==NULL) {
+        continue;
+      }
+      // check if current node is greater than max
+      if (maxNode == NULL || currNode->freq>maxNode->freq) {
+        maxNode = currNode;
+        maxIndex = j;
+      }
+    }
+    // calcualte probability
+    probability = (float)(maxNode->freq) / (float)denom;
+    // get string of word and print
+    string = getFullString(maxNode->prevNode);
+    printf("%.2f %s\n", probability, string);
+    free(string);
+    *(containStubArray+maxIndex) = NULL;
+  }
 
 }
 
@@ -396,5 +467,24 @@ void problem_2_b() {
 // If there are two strings with the same probability ties should be broken
 // alphabetically (with "a" coming before "aa").
 void problem_2_c() {
-  // TODO: Implement Me!
+  int N, denom;
+  char *stub;
+  scanf("%d\n", &N);
+  stub = getWord();
+  node_t *trieHead = createTrie(N);
+  node_t *stubNode = findStubNode(trieHead, stub);
+  // prefix does not exist in trie, failed
+  if (stubNode == NULL) {
+    return;
+  }
+  denom = stubNode -> freq;
+  int track = 0;
+  node_t **containStub = (node_t**)malloc(sizeof(node_t*)*denom);
+
+  traverseStub(stubNode, containStub, &track);
+  printProbableWords(containStub, track, denom);
+
+  free(stub);
+  free(containStub);
+  freeTrie(trieHead);
 }

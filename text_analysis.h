@@ -118,4 +118,8 @@ char *getFullString(node_t *node);
 
 void traverseK(node_t *node, int K);
 
+node_t *findStubNode(node_t *node, char *stub);
+
+void printProbableWords(node_t** containStubArray, int track, int denom);
+
 #endif
