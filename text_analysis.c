@@ -3,7 +3,7 @@
  *
  * created for COMP20007 Design of Algorithms 2020
  * template by Tobias Edwards <tobias.edwards@unimelb.edu.au>
- * implementation by <Insert Name Here>
+ * implementation by Serena Wang
  */
 
 #include "text_analysis.h"
@@ -36,7 +36,7 @@ int compareChar(char c1, char c2) {
   return 1;
 }
 
-// Create an array of nodes that keeps track of its children
+// Create an array of nodes that keeps track of a certain node's children
 node_t **createEdgeArray() {
   node_t **edgeArray = (node_t**)malloc(sizeof(node_t*)*DEFAULT_EDGE_ARRAY_SIZE);
   assert(edgeArray != NULL);
@@ -61,7 +61,7 @@ node_t *createNode(char c, node_t *prevNode) {
   return node;
 }
 
-// Create the head node of the trie, character ^
+// Create the head node of the trie, character is the START_SYMBOL (^)
 node_t *createHeadNode() {
   node_t **edgeArray = createEdgeArray();
   node_t *node = (node_t*)malloc(sizeof(node_t));
@@ -73,6 +73,7 @@ node_t *createHeadNode() {
   node->prevNode = NULL;
   node->edgeCount = 0;
   node->depth = 0;
+
   return node;
 }
 
@@ -91,12 +92,12 @@ void freeNode(node_t *node) {
   free(node);
 }
 
-// Free the trie
+// Free the trie and all the nodes in the trie
 void freeTrie(node_t *head) {
   freeNode(head);
 }
 
-// Perform binary search of character c in edge Array
+// Performs binary search of character c in edge erray
 int binarySearch(char c, node_t **edgeArray, int L, int R) {
   // character not found in array
   if (L>R) {
@@ -119,9 +120,9 @@ int binarySearch(char c, node_t **edgeArray, int L, int R) {
   }
 }
 
-// Search is character c exists as a child node for the node
-// if found -> returns index of node in egde array
-// if not found -> returns -1
+// Checks if character c exists as a child node for the node
+// if yes -> returns index of node in egde array
+// if not -> returns -1
 int searchEdgeArray(node_t *node, char c) {
   if (node->edgeCount == 0) {
     return -1;
@@ -129,21 +130,19 @@ int searchEdgeArray(node_t *node, char c) {
   return binarySearch(c, node->edgeArray, 0, node->edgeCount -1);
 }
 
-// Find which index the node with character c should be put in this edge array
-// in order to maintain ordered nature
-// AKA Find the smallest node that is greater than c
+// Binary search function that helps findEdgeArrayPosition function
 int binarySearchPosition(char c, node_t **edgeArray, int L, int R) {
   // L surpassed R, therfore all elements are less than c
   if (L>R) {
     return L;
   }
+  // choose middle index in array
   int i = (L+R)/2;
   int compare = compareChar(c, (*(edgeArray+i))->c);
-  // smallest node greater than c is found, return index
+  // one element left and is greater than c
   if (L==R && compare<0) {
     return L;
   }
-  // choose middle index in array
   // if character is less that node at index i
   if (compare<0) {
     // continue search below i, including i
@@ -151,14 +150,18 @@ int binarySearchPosition(char c, node_t **edgeArray, int L, int R) {
   }
   // if character is greater than node at index i
   else {
-    // continue search beyond node at index i
+    // continue search beyond node at index i, not including i
     return binarySearchPosition(c, edgeArray, i+1, R);
   }
 }
 
+// Finds which index the node with character c should be put in edge array
+// in order to maintain sorted nature
+// AKA Find the smallest node that is greater than c
 int findEdgeArrayPosition(node_t *addedNode, node_t *prevNode) {
-  // if edge array is empty
+  // edge array is empty
   if (prevNode->edgeCount ==0) {
+    // add node to first index
     return 0;
   }
   else {
@@ -196,50 +199,43 @@ void resizeEdgeArray(node_t *node) {
 // Add a character into the current node's array of child nodes
 // Ensure that sorted nature of array is maintained
 void addEdge(node_t *addedNode, node_t *prevNode) {
-  // DEBUG printf("adding %c (%p) to %c's (%p) edgeArray\n", addedNode->c, addedNode, prevNode->c, prevNode);
-  // search position
+  // Identify which index node should be placed in edge array
   int index = findEdgeArrayPosition(addedNode, prevNode);
-  // DEBUG printf("position in edge array: %d\n", index);
-  // resize array
+
+  // resize array if edge array has reached full capacity
   resizeEdgeArray(prevNode);
-  // shift array one position down
+
+  // shift array one position down, from where the new node will be put
   int i;
   for (i=(prevNode->edgeCount)-1; i>=index; i--) {
     *((prevNode->edgeArray)+i+1)=*((prevNode->edgeArray)+i);
-    // DEBUG printf("moving node %c (%p) one position up\n",(*((prevNode->edgeArray)+i))->c,*((prevNode->edgeArray)+i));
   }
+
   // place node in position
   *((prevNode->edgeArray)+index) = addedNode;
   prevNode -> edgeCount ++;
-  // DEBUG
-  /* printf("edge array of %c (%p):[", prevNode->c, prevNode);
-  for (i=0; i<prevNode->edgeCount; i++) {
-    printf("%c ", (*((prevNode->edgeArray)+i)) -> c);
-  }
-  printf("]\n");*/
 
 }
 
-// Preorder traversal through trie and printing each traverse node's character
+// Preorder traversal through trie and printing each traversed node's character
 void traversePrint(node_t *node) {
-  printf("%c\n", node->c, node->depth, node->freq);
+  // print current nodes character
+  printf("%c\n", node->c);
   int i;
+  // print node's children in sorted order
   for (i=0; i<node->edgeCount; i++) {
     traversePrint(*((node->edgeArray)+i));
   }
 }
 
-// Add end node to the end of the word pathway in trie
-void addEndNode(node_t *lastNode) {
-  // create the end node
-  node_t *endNode = createNode(END_SYMBOL, lastNode);
-  addEdge(endNode, lastNode); // could implement better function where it doesn't binary search but always adds it to the start of the array
-}
-
+// Append the end symbol to the end of the word being added to trie
 char *appendEndSymbol(char *word) {
   int len = strlen(word);
+  // resize the word to add one more character
   word = (char*)realloc(word, (len+2)*sizeof(char));
+  // add null character to signify end of word
   *(word+len+1) = NULL_CHAR;
+  // append the end symbol
   *(word+len) = END_SYMBOL;
   return word;
 }
@@ -250,106 +246,110 @@ node_t *createTrie(int N) {
   node_t *head = createHeadNode(), *currNode, *nextNode;
   int i, j, x, charIndex;
   char* word;
+  // iterate through all the words being added to trie
   for (i=0; i<N; i++) {
-    // Get the next word to add to trie
     word = getWord();
     word = appendEndSymbol(word);
-    // DEBUG printf("\n\nword: %s\n", word);
     currNode = head;
+
     // update frequency of total number words
     head->freq++;
+
     // iterate through each character in word
     for (j=0; j<strlen(word); j++) {
-      // DEBUG printf("char: %c ", *(word+j));
+      // check if node has a child node with the same character as the word
       charIndex = searchEdgeArray(currNode, *(word+j));
-      // if character node already exists in current node's edges
+      // if node is found
       if (charIndex != -1) {
-        // DEBUG printf("FOUND\n");
+        // go to the matching character node
         nextNode = *((currNode->edgeArray)+charIndex);
         nextNode->freq++;
-        // DEBUG printf("freq of node %c (%p) at depth %d: %d\n",nextNode->c, nextNode, nextNode->depth,nextNode->freq);
-        // traverse to the character node
         currNode = nextNode;
         // look for next character in word
         continue;
       }
-      // if character is not found
+      // if node is not found
       else {
-        // DEBUG printf("NOT FOUND\n");
-        // for remaining letters
+        // for remaining letters in the word
+        // create nodes for them and add it to trie
         for (x=j; x<strlen(word); x++) {
           nextNode = createNode(*(word+x), currNode);
-          // DEBUG printf("created new node: %c (%p), depth: %d\n", nextNode->c, nextNode, nextNode->depth );
           addEdge(nextNode, currNode);
           currNode = nextNode;
         }
-        // add end symbol node to end of word in trie
         break;
       }
     }
+    free(word);
   }
-  free(word);
   return head;
 }
 
-// Build a character level trie for a given set of words.
+// Builds a character level trie for a given set of words
 //
-// The input to your program is an integer N followed by N lines containing
+// The input is an integer N followed by N lines containing
 // words of length < 100 characters, containing only lowercase letters.
 //
-// Your program should built a character level trie where each node indicates
-// a single character. Branches should be ordered in alphabetic order.
+// Each node indicates a single character.
+// Branches are ordered in alphabetic order.
 //
-// Your program must output the pre-order traversal of the characters in
-// the trie, on a single line.
+// Outputs the pre-order traversal of the characters in the trie.
 void problem_2_a() {
   int N;
+  // read in the paramters
   scanf("%d\n", &N);
 
+  // create the trie
   node_t *trieHead = createTrie(N);
 
+  // traverse and print the nodes in the trie
   traversePrint(trieHead);
+
+  // frees the trie
   freeTrie(trieHead);
 }
 
-// Get the full string from the head trie to a specified node
+// Gets the string represented by the head of the trie to the specified node
 char *getFullString(node_t *node) {
   node_t *currNode = node;
   int stringLength = node->depth, i;
   char* string = malloc((stringLength+1)*sizeof(char));
 
-  // copy path of node's characters to string
+  // traverse from given node to the head node
   for (i=stringLength-1; i>=0; i--) {
+    // copy the node's character to the string (from end to start)
     *(string+i) = currNode->c;
     currNode = currNode->prevNode;
   }
-  // add null character at the end
+  // add null character at the end of string
   *(string+stringLength) = '\0';
 
   return string;
 }
 
-// Traverse preorderly through trie and print prefixes (and their frequencies) with length K
+// Preorder traversal through trie and print prefixes (and their frequencies)
+// that have length K
 void traverseK(node_t *node, int K) {
   char *string;
   int i;
   // if length of path is equal to K and node is not an end symbol
   if (K==node->depth && node->c != END_SYMBOL) {
+    // get and print the prefix
     string = getFullString(node);
     printf("%s %d\n", string, node->freq);
     free(string);
   }
+  // if node depth has not reached K, keeping traversing down trie
   else if (node->edgeCount != 0) {
     for (i=0; i<node->edgeCount; i++) {
       traverseK(*((node->edgeArray)+i), K);
     }
   }
-  return;
 }
 
-// Using the trie constructed in Part (a) this program should output all
-// prefixes of length K, in alphabetic order along with their frequencies
-// with their frequencies. The input will be:
+// Outputs all prefixes of length K, in alphabetic order
+// along with their frequencies
+// The input will be:
 //   n k
 //   str_0
 //   ...
@@ -361,28 +361,34 @@ void traverseK(node_t *node, int K) {
 //   ...
 //   ye 1
 void problem_2_b() {
-  // scan in parameters
+  // scan parameters
   int N, K;
   scanf("%d %d\n", &N, &K);
-  // create a trie
+
+  // create the trie
   node_t *trieHead = createTrie(N);
-  // traverse the trie and print out the strings that only have length K
+
+  // traverse the trie and print out the prefiexes that have length K
   traverseK(trieHead, K);
+
   // free trie
   freeTrie(trieHead);
-
 }
 
-// Find the node that ends the stub prefix
+// Find the ending node that creates the prefix 'stub'
 node_t *findStubNode(node_t *node, char *stub) {
   node_t *currNode = node;
   int i, index;
   char c;
+  // iterate through the characters in stub
   for (i=0; i<strlen(stub); i++) {
     c = *(stub+i);
+    // character in stub matches character in node's children nodes
     if ((index=searchEdgeArray(currNode, c))!=-1) {
+      // traverse to matching node
       currNode = *((currNode->edgeArray)+index);
     }
+    // stub prefix does not exist in trie
     else {
       return NULL;
     }
@@ -390,30 +396,38 @@ node_t *findStubNode(node_t *node, char *stub) {
   return currNode;
 }
 
-// Add the node of the end of the string to array
+// Collect all nodes that denote the end of a string, starting from
+// a specified internal node.
+// Add these nodes to an array
 void traverseStub(node_t *node, node_t **array, int *track) {
+  // reached the end of a string
   if (node-> c == END_SYMBOL) {
+    // add node that represents the end of the string to array
     *(array+*track) = node;
+    // increase tracker of array total by 1
     *track = *track + 1;
     return;
   }
+  // have not reached end of string yet
   else {
     int i;
+    // traverse to all of the node's children
     for (i=0; i<node->edgeCount; i++) {
       traverseStub(*((node->edgeArray)+i), array, track);
     }
   }
 }
 
-// Print the top few probable words that contain the stub
+// Print the top few probable words that contain the stub prefix
+// in order of descending probability and alphabetically
 void printProbableWords(node_t** containStubArray, int track, int denom) {
   int i, j, maxIndex;
   float probability;
   node_t *maxNode, *currNode;
   char *string;
-  // find the top number of strings to show
+  // iterate through, at most, the maximum number of strings we wish to display
   for (i=0; i<P2C_COMPLETIONS && i<=track; i++) {
-    // maximum node for the upcoming iteration
+    // find node with maximum freq for the upcoming iteration
     maxNode = NULL;
     maxIndex = -1;
     for (j=0; j<track; j++) {
@@ -424,64 +438,65 @@ void printProbableWords(node_t** containStubArray, int track, int denom) {
       }
       // check if current node is greater than max
       if (maxNode == NULL || currNode->freq>maxNode->freq) {
+        // if it is, store as newest maximum node
         maxNode = currNode;
+        // track its index in the array
         maxIndex = j;
       }
     }
-    // calcualte probability
+    // calcualte the maximum freq node's probability
     probability = (float)(maxNode->freq) / (float)denom;
-    // get string of word and print
+    // get string that node represents
     string = getFullString(maxNode->prevNode);
     printf("%.2f %s\n", probability, string);
     free(string);
+    // indicate that we have already selected this node
     *(containStubArray+maxIndex) = NULL;
   }
 
 }
 
-// Again using the trie data structure you implemented for Part (a) you will
-// provide a list (up to 5) of the most probable word completions for a given
+
+// Provides a list (up to 5) of the most probable word completions for a given
 // word stub.
 //
-// For example if the word stub is "al" your program may output:
-//   0.50 algorithm
-//   0.25 algebra
-//   0.13 alright
-//   0.06 albert
-//   0.03 albania
-//
-// The probabilities should be formatted to exactly 2 decimal places and
-// should be computed according to the following formula, for a word W with the
-// prefix S:
+// Rrobabilities are formatted to exactly 2 decimal places and are
+// computed according to the following formula:
+// for a word W with the prefix S:
 //   Pr(word = W | stub = S) = Freq(word = W) / Freq(stub = S)
 //
-// The input to your program will be the following:
+// The input to the program is in the form:
 //   n
 //   stub
 //   str_0
 //   ...
 //   str_(n-1)
-// That is, there are n + 1 strings in total, with the first being the word
-// stub.
-//
-// If there are two strings with the same probability ties should be broken
-// alphabetically (with "a" coming before "aa").
 void problem_2_c() {
   int N, denom;
   char *stub;
+  // get parameter N
   scanf("%d\n", &N);
+  // get the stub string
   stub = getWord();
+  // create the trie with the inputted strings
   node_t *trieHead = createTrie(N);
+  // find the node that denotes the end of the stub prefix
   node_t *stubNode = findStubNode(trieHead, stub);
+
   // prefix does not exist in trie, failed
   if (stubNode == NULL) {
     return;
   }
-  denom = stubNode -> freq;
-  int track = 0;
-  node_t **containStub = (node_t**)malloc(sizeof(node_t*)*denom);
 
+  denom = stubNode -> freq;
+  // track the number of strings that contain the stub prefix
+  int track = 0;
+  // array contains the ending nodes of strings that contain the stub prefix
+  node_t **containStub = (node_t**)malloc(sizeof(node_t*)*denom);
+  // add these nodes to the array
   traverseStub(stubNode, containStub, &track);
+
+  // print the top 5 strings
   printProbableWords(containStub, track, denom);
 
   free(stub);

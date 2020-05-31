@@ -84,42 +84,76 @@ void problem_2_c();
   // 1 if c1>c2
 int compareChar(char c1, char c2);
 
+// Create an array of nodes that keeps track of a certain node's children
 node_t **createEdgeArray();
-
+// Create a node:
+  // c <- character stored in node
+  // depth <- the level the node is on in the trie
+  // prevNode <- the parent of the node
 node_t *createNode(char c, node_t *prevNode);
 
+// Create the head node of the trie, character is the START_SYMBOL (^)
 node_t *createHeadNode();
 
+// Free the edge array of the node
 void freeEdgeArray(node_t *node);
 
+// Free the node and its children
 void freeNode(node_t *node);
 
+// Free the trie and all the nodes in the trie
 void freeTrie(node_t *head);
 
+// Performs binary search of character c in edge erray
 int binarySearch(char c, node_t **edgeArray, int L, int R);
 
+// Checks if character c exists as a child node for the node
+// if yes -> returns index of node in egde array
+// if not -> returns -1
 int searchEdgeArray(node_t *node, char c);
 
+// Binary search function that helps findEdgeArrayPosition function
 int binarySearchPosition(char c, node_t **edgeArray, int L, int R);
 
+// Finds which index the node with character c should be put in edge array
+// in order to maintain sorted nature
+// AKA Find the smallest node that is greater than c
 int findEdgeArrayPosition(node_t *addedNode, node_t *prevNode);
 
+// Resize the edge array if it has reached full capacity
+// Increase the size by factor until it will exceed max number of edges
 void resizeEdgeArray(node_t *node);
 
+// Add a character into the current node's array of child nodes
+// Ensure that sorted nature of array is maintained
 void addEdge(node_t *addedNode, node_t *prevNode);
 
+// Preorder traversal through trie and printing each traversed node's character
 void traversePrint(node_t *node);
 
-void addEndNode(node_t *lastNode);
+// Append the end symbol to the end of the word being added to trie
+char *appendEndSymbol(char *word);
 
+// Create a trie and return it's head node
 node_t *createTrie(int N);
 
+// Gets the string represented by the head of the trie to the specified node
 char *getFullString(node_t *node);
 
+// Preorder traversal through trie and print prefixes (and their frequencies)
+// that have length K
 void traverseK(node_t *node, int K);
 
+// Find the ending node that creates the prefix 'stub'
 node_t *findStubNode(node_t *node, char *stub);
 
+// Collect all nodes that denote the end of a string, starting from
+// a specified internal node.
+// Add these nodes to an array
+void traverseStub(node_t *node, node_t **array, int *track);
+
+// Print the top few probable words that contain the stub prefix
+// in order of descending probability and alphabetically
 void printProbableWords(node_t** containStubArray, int track, int denom);
 
 #endif
